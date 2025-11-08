@@ -25,7 +25,11 @@ connectDB();
 // =========================================
 app.use(
   cors({
-    origin: "http://localhost:5173", // ✅ Your React frontend (Vite)
+    origin: [
+  "http://localhost:5173",
+  "https://ceps-frontend.vercel.app", // (you can update this later if your frontend URL changes)
+],
+
     credentials: true,
   })
 );
