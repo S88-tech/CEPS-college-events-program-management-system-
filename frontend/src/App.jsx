@@ -1,5 +1,5 @@
 // ===========================================
-// ✅ CEPS Frontend — App.jsx (Fully Fixed Version)
+// ✅ CEPS Frontend — App.jsx (With Landing Page)
 // ===========================================
 
 import React, { useState, useEffect } from "react";
@@ -12,6 +12,7 @@ import {
 } from "react-router-dom";
 
 // Pages
+import LandingPage from "./pages/LandingPage.jsx";  // ✅ NEW
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -25,40 +26,30 @@ import EventRegistration from "./pages/EventRegistration.jsx";
 import Profile from "./pages/Profile.jsx";
 import ChangePassword from "./pages/ChangePassword.jsx";
 import MyRegisteredEvents from "./pages/MyRegisteredEvents.jsx";
-import AddEvent from "./pages/AddEvent.jsx"; // ✅ NEW: Add Event page imported
+import AddEvent from "./pages/AddEvent.jsx";
 
-// Layout components
+// Layout
 import Sidebar from "./components/layout/Sidebar.jsx";
 import Header from "./components/layout/Header.jsx";
 
-// =====================================================
-// ✅ ProtectedRoute
-// =====================================================
+// ✅ Protected Route
 const ProtectedRoute = ({ children, requireRole }) => {
   const token = localStorage.getItem("token");
   const userRole = localStorage.getItem("userRole");
 
-  // Redirect to login if no token
   if (!token) return <Navigate to="/login" replace />;
 
-  // Check role permissions
   if (requireRole) {
-    const allowedRoles = Array.isArray(requireRole)
-      ? requireRole
-      : [requireRole];
-    if (!allowedRoles.includes(userRole)) {
-      return <Navigate to="/dashboard" replace />;
-    }
+    const roles = Array.isArray(requireRole) ? requireRole : [requireRole];
+    if (!roles.includes(userRole)) return <Navigate to="/dashboard" replace />;
   }
 
   return children;
 };
 
-// =====================================================
-// ✅ Page Layout (Sidebar + Header)
-// =====================================================
+// ✅ Main Layout
 const PageLayout = ({ isOpen, toggleSidebar, title, children }) => (
-  <div className="flex flex-col md:flex-row bg-gradient-to-br from-[#0a0f1f] via-[#111b3d] to-[#1c2b6c] min-h-screen text-white overflow-hidden">
+  <div className="flex flex-col md:flex-row bg-gradient-to-br from-[#0a0f1f] via-[#111b3d] to-[#1c2b6c] min-h-screen text-white">
     <Sidebar isOpen={isOpen} toggleSidebar={toggleSidebar} />
     <div
       className={`flex flex-col flex-1 transition-all duration-300 ${
@@ -66,16 +57,14 @@ const PageLayout = ({ isOpen, toggleSidebar, title, children }) => (
       }`}
     >
       <Header title={title} toggleSidebar={toggleSidebar} />
-      <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
         {children}
       </main>
     </div>
   </div>
 );
 
-// =====================================================
-// ✅ Routes Wrapper (Handles Layout + Redirect Logic)
-// =====================================================
+// ✅ Routes Wrapper
 function MainRoutesWrapper() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(true);
@@ -89,7 +78,6 @@ function MainRoutesWrapper() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ✅ Check auth status on load
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("userRole");
@@ -97,24 +85,25 @@ function MainRoutesWrapper() {
     if (token && role && logged) {
       setIsLoggedIn(true);
       setUserRole(role);
-    } else {
-      setIsLoggedIn(false);
-    }
+    } else setIsLoggedIn(false);
   }, [location.pathname]);
 
-  const toggleSidebar = () => setIsOpen((prev) => !prev);
+  const toggleSidebar = () => setIsOpen((p) => !p);
 
-  // ✅ Redirect Logic for Root
-  const redirectAfterLogin = () => {
-    if (!isLoggedIn) return <Navigate to="/login" replace />;
+  // ✅ Handle root "/"
+  const handleRoot = () => {
+    if (!isLoggedIn) return <LandingPage />; // ✅ Show Landing Page if not logged in
     if (userRole === "student") return <Navigate to="/events" replace />;
     return <Navigate to="/dashboard" replace />;
   };
 
   return (
-    <Routes location={location} key={location.pathname}>
-      {/* ✅ Authentication */}
-      <Route path="/" element={redirectAfterLogin()} />
+    <Routes>
+
+      {/* ✅ Landing Page */}
+      <Route path="/" element={handleRoot()} />
+
+      {/* ✅ Auth */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 
@@ -123,11 +112,7 @@ function MainRoutesWrapper() {
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Dashboard Overview"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Dashboard Overview">
               <Dashboard />
             </PageLayout>
           </ProtectedRoute>
@@ -139,59 +124,43 @@ function MainRoutesWrapper() {
         path="/events"
         element={
           <ProtectedRoute>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Events & Programs"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Events & Programs">
               <Events />
             </PageLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* ✅ Add Event (Faculty/Admin Only) */}
+      {/* ✅ Add Event */}
       <Route
         path="/add-event"
         element={
           <ProtectedRoute requireRole={["faculty", "admin"]}>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Add New Event"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Add Event">
               <AddEvent />
             </PageLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* ✅ My Registered Events (Student Only) */}
+      {/* ✅ My Events (Student) */}
       <Route
         path="/my-events"
         element={
           <ProtectedRoute requireRole="student">
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="My Registered Events"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="My Registered Events">
               <MyRegisteredEvents />
             </PageLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* ✅ Event Registration (Faculty/Admin Only) */}
+      {/* ✅ Event Registration (Faculty/Admin) */}
       <Route
         path="/event-registration"
         element={
           <ProtectedRoute requireRole={["faculty", "admin"]}>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Event Registration & Approval"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Event Registration & Approval">
               <EventRegistration />
             </PageLayout>
           </ProtectedRoute>
@@ -203,27 +172,19 @@ function MainRoutesWrapper() {
         path="/attendance"
         element={
           <ProtectedRoute>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Attendance Management"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Attendance Management">
               <Attendance />
             </PageLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* ✅ Trainer Allocation */}
+      {/* ✅ Trainer */}
       <Route
         path="/trainer-allocation"
         element={
           <ProtectedRoute>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Trainer & Resource Allocation"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Trainer Allocation">
               <TrainerAllocation />
             </PageLayout>
           </ProtectedRoute>
@@ -235,27 +196,19 @@ function MainRoutesWrapper() {
         path="/notifications"
         element={
           <ProtectedRoute>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Notifications"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Notifications">
               <Notifications />
             </PageLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* ✅ Analytics (Faculty/Admin Only) */}
+      {/* ✅ Analytics */}
       <Route
         path="/analytics"
         element={
           <ProtectedRoute requireRole={["faculty", "admin"]}>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Analytics Dashboard"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Analytics Dashboard">
               <Analytics />
             </PageLayout>
           </ProtectedRoute>
@@ -267,11 +220,7 @@ function MainRoutesWrapper() {
         path="/feedback"
         element={
           <ProtectedRoute>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Feedback Management"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Feedback Management">
               <Feedback />
             </PageLayout>
           </ProtectedRoute>
@@ -283,11 +232,7 @@ function MainRoutesWrapper() {
         path="/profile"
         element={
           <ProtectedRoute>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="User Profile"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="User Profile">
               <Profile />
             </PageLayout>
           </ProtectedRoute>
@@ -299,33 +244,28 @@ function MainRoutesWrapper() {
         path="/change-password"
         element={
           <ProtectedRoute>
-            <PageLayout
-              isOpen={isOpen}
-              toggleSidebar={toggleSidebar}
-              title="Change Password"
-            >
+            <PageLayout isOpen={isOpen} toggleSidebar={toggleSidebar} title="Change Password">
               <ChangePassword />
             </PageLayout>
           </ProtectedRoute>
         }
       />
 
-      {/* ✅ 404 Page */}
+      {/* ✅ 404 */}
       <Route
         path="*"
         element={
-          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-800 text-white text-2xl font-semibold">
+          <div className="min-h-screen flex items-center justify-center text-white text-2xl">
             404 — Page Not Found
           </div>
         }
       />
+
     </Routes>
   );
 }
 
-// =====================================================
-// ✅ Root App Component
-// =====================================================
+// ✅ Root
 export default function App() {
   return (
     <Router>
